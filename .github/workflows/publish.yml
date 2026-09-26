@@ -1,0 +1,84 @@
+name: publish
+# Publishes to npm when a version tag on main is pushed, using npm trusted publishing (OIDC)
+# with provenance. No NPM_TOKEN or other long-lived secret is used: configure this repository
+# and workflow as a trusted publisher for @cexyio/mcp on npmjs.com.
+#
+# Two jobs: `build` (no OIDC token) installs, checks, tests and packs; `publish` (environment
+# "npm", id-token: write) only downloads the tarball and publishes it.
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tarball: ${{ steps.pack.outputs.tarball }}
+      dist_tag: ${{ steps.pack.outputs.dist_tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: {fetch-depth: 0}
+      - name: The tagged commit is on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: {node-version: 22}
+      - name: Tag matches package.json version
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: The SDK dependency is a published version (no file:/link: specifiers)
+        run: |
+          node -e '
+            const d = require("./package.json").dependencies || {};
+            const bad = Object.entries(d).filter(([, v]) => /^(file|link|git|github):|\//.test(v));
+            if (bad.length) { console.error("unpublishable dependencies:", bad); process.exit(1); }'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: No internal references
+        env:
+          SCAN_PATTERNS: ${{ secrets.SCAN_PATTERNS }}
+        run: |
+          printf '%s\n' "$SCAN_PATTERNS" > "$RUNNER_TEMP/scan-patterns.txt"
+          CEXY_SCAN_PATTERNS_FILE="$RUNNER_TEMP/scan-patterns.txt" python3 tools/scan_internal.py .
+      - name: Secret scan (gitleaks 8.21.2, checksum-verified)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tgz" https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz
+          echo "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" dir . --config .gitleaks.toml --no-banner --redact
+      - run: npm run build
+      - name: Pack
+        id: pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/pkg"
+          TARBALL=$(npm pack --pack-destination "$RUNNER_TEMP/pkg" | tail -n 1)
+          if node -p "require('./package.json').version" | grep -q -- '-'; then TAG=next; else TAG=latest; fi
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$TAG" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-package
+          path: ${{ runner.temp }}/pkg/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # OIDC for trusted publishing and provenance
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with: {name: npm-package}
+      - name: Publish (prerelease versions go to the "next" dist-tag)
+        env:
+          TARBALL: ${{ needs.build.outputs.tarball }}
+          DIST_TAG: ${{ needs.build.outputs.dist_tag }}
+        run: npx -y npm@11.6.2 publish "./$TARBALL" --provenance --access public --tag "$DIST_TAG" --ignore-scripts
