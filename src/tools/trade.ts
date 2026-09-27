@@ -223,16 +223,44 @@ export const tradeTools: ToolDef[] = [
     title: "Cancel all orders in a market",
     description:
       "Cancels every open order you have in ONE market. symbol is required: this server never cancels across all " +
-      "markets. Needs the trade scope.",
-    input: { symbol: symbolSchema },
+      "markets. One call handles up to 500 orders; already_closed lists orders that closed on their own (not an " +
+      "error), and failures says why an order could not be cancelled. With until_done=true it repeats the call " +
+      "(up to 20 rounds or 2 minutes) while more orders remain or some are still being placed. The exchange allows " +
+      "30 cancel-all calls a minute. Needs the trade scope.",
+    input: {
+      symbol: symbolSchema,
+      until_done: z.boolean().optional().describe("Repeat until every order is handled (default false: one call)."),
+    },
     annotations: { ...TRADE_ANNOTATIONS, idempotentHint: true, title: "Cancel all orders in a market" },
-    handler: async ({ symbol }, { client }) => {
+    handler: async ({ symbol, until_done }, { client }) => {
       const s = upper(symbol);
       if (!s) throw new InputError("symbol is required");
+      const failuresView = (fs: { order_id: string; code: string; message: string }[]) =>
+        fs.map((f) => ({ order_id: f.order_id, code: f.code, message: f.message }));
+      if (until_done === true) {
+        const res = await client.trading.cancelAll({ symbol: s, untilDone: true });
+        const tail = res.stopped === "done" ? "" : ` Stopped early (${res.stopped}); call again to continue.`;
+        return {
+          summary:
+            `${plural(res.cancelled.length, "order")} cancelled in ${s}, ${res.already_closed.length} already closed` +
+            `${res.failed.length ? `, ${res.failed.length} failed` : ""} (${plural(res.rounds, "round")}).${tail}`,
+          data: {
+            symbol: s, cancelled: res.cancelled, already_closed: res.already_closed, failed: res.failed,
+            failures: failuresView(res.failures), has_more: res.has_more, rounds: res.rounds, stopped: res.stopped,
+          },
+        };
+      }
       const res = await client.trading.cancelAll({ symbol: s });
+      const more = res.has_more ? " More orders remain: call again, or use until_done=true." : "";
       return {
-        summary: `${plural(res.cancelled.length, "order")} cancelled in ${s}${res.failed.length ? `, ${res.failed.length} failed` : ""}.`,
-        data: { symbol: s, cancelled: res.cancelled, failed: res.failed },
+        summary:
+          `${plural(res.cancelled.length, "order")} cancelled in ${s}` +
+          (res.already_closed.length ? `, ${res.already_closed.length} already closed` : "") +
+          `${res.failed.length ? `, ${res.failed.length} failed` : ""}.${more}`,
+        data: {
+          symbol: s, cancelled: res.cancelled, already_closed: res.already_closed, failed: res.failed,
+          failures: failuresView(res.failures), has_more: res.has_more,
+        },
       };
     },
   }),

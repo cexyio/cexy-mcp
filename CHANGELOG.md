@@ -6,6 +6,18 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.3]
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.4` (exact pin), which supports cancel-all v2.
+- `cancel_all_orders` (trading tools only) reports `already_closed` (orders that closed on their own: not an
+  error), `failures` (order id, code, message) and `has_more`. When more orders remain, the summary says so.
+
+### Added
+- `cancel_all_orders` accepts `until_done: true`, which repeats the call while orders remain or are still being
+  placed (up to 20 rounds or 2 minutes) and returns the merged result with `rounds` and `stopped`. The default
+  stays a single call, and `symbol` stays required: the server never cancels across all markets.
+
 ## [0.1.0-dev.2]
 
 ### Security

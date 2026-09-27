@@ -216,10 +216,33 @@ describe("place_order", () => {
 
 describe("cancel tools", () => {
   it("cancel_all_orders sends the symbol in the body", async () => {
-    h = await harness(env(), { "POST /trading/orders/cancel-all": data({ cancelled: ["a", "b"], failed: [] }) });
+    h = await harness(env(), { "POST /trading/orders/cancel-all": data(
+      { cancelled: ["a", "b"], already_closed: [], failed: [], failures: [], has_more: false }) });
     const r = await h.call("cancel_all_orders", { symbol: "btc/usdt" });
     expect(h.calls[0]!.body).toEqual({ symbol: "BTC/USDT" });
     expect(structured(r)).toMatchObject({ symbol: "BTC/USDT", cancelled: ["a", "b"] });
+  });
+
+  it("cancel_all_orders is one call by default and reports already_closed, failures and has_more", async () => {
+    h = await harness(env(), { "POST /trading/orders/cancel-all": data({
+      cancelled: ["a"], already_closed: ["b"], failed: ["c"], has_more: true,
+      failures: [{ order_id: "c", code: "MARKET_UNAVAILABLE", message: "market halted" }] }) });
+    const r = await h.call("cancel_all_orders", { symbol: "BTC/USDT" });
+    expect(h.calls).toHaveLength(1);
+    expect(structured(r)).toMatchObject({ already_closed: ["b"], failed: ["c"], has_more: true,
+      failures: [{ order_id: "c", code: "MARKET_UNAVAILABLE" }] });
+    expect(JSON.stringify(r.content)).toContain("until_done=true");
+  });
+
+  it("cancel_all_orders with until_done repeats while has_more and merges the rounds", async () => {
+    let n = 0;
+    h = await harness(env(), { "POST /trading/orders/cancel-all": () => ({ body: data(n++ === 0
+      ? { cancelled: ["a"], already_closed: [], failed: [], failures: [], has_more: true }
+      : { cancelled: ["b"], already_closed: ["c"], failed: [], failures: [], has_more: false }) }) });
+    const r = await h.call("cancel_all_orders", { symbol: "BTC/USDT", until_done: true });
+    expect(h.calls).toHaveLength(2);
+    expect(h.calls.every((c) => (c.body as { symbol?: string }).symbol === "BTC/USDT")).toBe(true);
+    expect(structured(r)).toMatchObject({ cancelled: ["a", "b"], already_closed: ["c"], rounds: 2, stopped: "done" });
   });
 
   it("cancel_order by client_order_id resolves the id first", async () => {
