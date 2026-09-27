@@ -14,16 +14,13 @@ updates:
     versioning-strategy: increase-if-necessary
     # Majors held back on purpose (see the dev-tools PR that added this):
     #   typescript 7: outside the peer range of typescript-eslint.
-    #   @types/node: tracks the lowest supported Node (engines >=20), not the newest.
-    #   vitest 5: requires Node 22+, and CI still tests Node 20.
+    #   @types/node: tracks the lowest supported Node (engines >=22), not the newest.
     ignore:
       # The SDK is bumped deliberately together with an MCP release (exact pin), not by Dependabot.
       - dependency-name: "@cexyio/cexy"
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
     groups:
       dev-tools:
