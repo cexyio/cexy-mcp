@@ -225,8 +225,9 @@ export const tradeTools: ToolDef[] = [
       "Cancels every open order you have in ONE market. symbol is required: this server never cancels across all " +
       "markets. One call handles up to 500 orders; already_closed lists orders that closed on their own (not an " +
       "error), and failures says why an order could not be cancelled. With until_done=true it repeats the call " +
-      "(up to 20 rounds or 2 minutes) while more orders remain or some are still being placed. The exchange allows " +
-      "30 cancel-all calls a minute. Needs the trade scope.",
+      "(up to 20 rounds or 2 minutes) while more orders remain or some are still being placed, so one call can take " +
+      "up to about 2 minutes: raise your client's tool timeout if it is shorter. The exchange allows 30 cancel-all " +
+      "calls a minute. Needs the trade scope.",
     input: {
       symbol: symbolSchema,
       until_done: z.boolean().optional().describe("Repeat until every order is handled (default false: one call)."),
@@ -239,7 +240,8 @@ export const tradeTools: ToolDef[] = [
         fs.map((f) => ({ order_id: f.order_id, code: f.code, message: f.message }));
       if (until_done === true) {
         const res = await client.trading.cancelAll({ symbol: s, untilDone: true });
-        const tail = res.stopped === "done" ? "" : ` Stopped early (${res.stopped}); call again to continue.`;
+        const why = res.last_error_code ? `, last error ${res.last_error_code}` : "";
+        const tail = res.stopped === "done" ? "" : ` Stopped early (${res.stopped}${why}); call again to continue.`;
         return {
           summary:
             `${plural(res.cancelled.length, "order")} cancelled in ${s}, ${res.already_closed.length} already closed` +
@@ -247,6 +249,7 @@ export const tradeTools: ToolDef[] = [
           data: {
             symbol: s, cancelled: res.cancelled, already_closed: res.already_closed, failed: res.failed,
             failures: failuresView(res.failures), has_more: res.has_more, rounds: res.rounds, stopped: res.stopped,
+            ...(res.last_error_code ? { last_error_code: res.last_error_code } : {}),
           },
         };
       }

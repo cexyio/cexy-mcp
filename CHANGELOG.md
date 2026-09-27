@@ -6,6 +6,20 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.4]
+
+### Fixed
+- Depends on `@cexyio/cexy` `0.1.0-dev.5` (exact pin): server-controlled waits are bounded (a Retry-After
+  above 120 s fails fast instead of waiting), and the `until_done` loop sends one request per round and
+  never waits past its 2-minute budget.
+
+### Changed
+- `cancel_all_orders` description: with `until_done` one call can take up to about 2 minutes.
+- `cancel_all_orders(until_done)`: `last_error_code` when the loop stopped early; when a non-retryable error
+  stops it, the error result carries `partial` (what was already cancelled).
+- Orders no longer carry an `Idempotency-Key` (SDK policy: pool join/exit only; the server ignored it on
+  orders, whose safety rests on `client_order_id`).
+
 ## [0.1.0-dev.3]
 
 ### Changed
