@@ -29,9 +29,9 @@ tool surface may still change).
 - An ambiguous `place_order` failure (network error, timeout, 5xx) is reported as not retryable,
   with the `client_order_id` and an instruction to check `get_order` before placing again.
 
-### Notes
-- The prerelease depends on the SDK via `file:../cexy-typescript`. The first published release
-  pins the published `@cexyio/cexy` version instead.
+### Changed
+- Depends on the published SDK `@cexyio/cexy` `0.1.0-dev.0` (exact pin) instead of a sibling
+  checkout; CI no longer checks out and builds `cexy-typescript`.
 
 ## [0.1.0-dev.0]
 

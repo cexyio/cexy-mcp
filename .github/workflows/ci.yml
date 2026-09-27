@@ -13,15 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {path: cexy-mcp, fetch-depth: 0}
-      # Prerelease only: the SDK is consumed from a sibling checkout ("file:../cexy-typescript").
-      # Released versions pin the published @cexyio/cexy instead, and this step goes away.
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with: {repository: cexyio/cexy-typescript, path: cexy-typescript}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: {node-version: 22}
-      - name: Build the SDK dependency
-        working-directory: cexy-typescript
-        run: npm ci && npm run build
       - run: npm ci
       - name: Lint
         run: npm run lint
@@ -60,13 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {path: cexy-mcp}
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with: {repository: cexyio/cexy-typescript, path: cexy-typescript}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: {node-version: "${{ matrix.node }}"}
-      - name: Build the SDK dependency
-        working-directory: cexy-typescript
-        run: npm ci && npm run build
       - run: npm ci
       - run: npm test
       - name: The bin starts and answers initialize over stdio
