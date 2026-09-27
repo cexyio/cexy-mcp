@@ -6,6 +6,20 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.1]
+
+First release published by CI through npm trusted publishing, with provenance.
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.2` (exact pin), which adds `JurisdictionBlockedError`
+  (HTTP 451 errors are reported with code `JURISDICTION_BLOCKED`).
+- Publish workflow: one shared publish command; the build job dry-runs it from the same directory
+  before the environment approval.
+
+## [0.1.0-dev.0] (2026-09-27)
+
+First published pre-release (manual bootstrap upload of the CI-built tarball; no provenance).
+
 - Requires Node.js 20 or newer (Node 18 is end-of-life and lacks the global `crypto.randomUUID`).
 
 ### Added
@@ -32,7 +46,3 @@ tool surface may still change).
 ### Changed
 - Depends on the published SDK `@cexyio/cexy` `0.1.0-dev.0` (exact pin) instead of a sibling
   checkout; CI no longer checks out and builds `cexy-typescript`.
-
-## [0.1.0-dev.0]
-
-- Local prototype. Not published.
