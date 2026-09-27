@@ -53,7 +53,8 @@ describe("place_order", () => {
     expect(body.symbol).toBe("BTC/USDT");
     expect(body.price).toBe("100");
     expect(structured(r)).toMatchObject({ client_order_id: body.client_order_id, recovered: false, order: { status: "open" } });
-    expect(h.calls[0]!.headers.get("idempotency-key")).toBeTruthy();
+    // SDK 0.1.0-dev.5: Idempotency-Key only on pool join/exit; order safety rests on client_order_id.
+    expect(h.calls[0]!.headers.get("idempotency-key")).toBeNull();
   });
 
   it("keeps a client_order_id supplied by the caller", async () => {
@@ -243,6 +244,19 @@ describe("cancel tools", () => {
     expect(h.calls).toHaveLength(2);
     expect(h.calls.every((c) => (c.body as { symbol?: string }).symbol === "BTC/USDT")).toBe(true);
     expect(structured(r)).toMatchObject({ cancelled: ["a", "b"], already_closed: ["c"], rounds: 2, stopped: "done" });
+  });
+
+  it("cancel_all_orders until_done reports the partial result when a non-retryable error stops it", async () => {
+    let n = 0;
+    h = await harness(env(), { "POST /trading/orders/cancel-all": () => (n++ === 0
+      ? { body: data({ cancelled: ["a"], already_closed: [], failed: [], failures: [], has_more: true }) }
+      : { status: 403, body: { error: { code: "FORBIDDEN", message: "missing trade scope", retryable: false } } }) });
+    const r = await h.call("cancel_all_orders", { symbol: "BTC/USDT", until_done: true });
+    expect(r.isError).toBe(true);
+    expect(h.calls).toHaveLength(2);
+    const err = (r.structuredContent as { error: { code: string; partial: { cancelled: string[]; rounds: number } } }).error;
+    expect(err.code).toBe("FORBIDDEN");
+    expect(err.partial).toMatchObject({ cancelled: ["a"], rounds: 2 });
   });
 
   it("cancel_order by client_order_id resolves the id first", async () => {

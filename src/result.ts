@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  CancelAllInterruptedError,
   CexyApiError,
   CexyConfigError,
   CexyConnectionError,
@@ -120,10 +121,26 @@ export interface ToolErrorBody {
   retry_after_ms?: number | null;
   client_order_id?: string;
   details?: Record<string, unknown>;
+  /** cancel_all_orders(until_done): what was already done before the error stopped the loop. */
+  partial?: Record<string, unknown>;
 }
 
 /** Maps anything thrown by a tool handler to a safe error body. Never includes secrets or headers. */
 export function errorBody(err: unknown): ToolErrorBody {
+  if (err instanceof CancelAllInterruptedError) {
+    // cancel_all_orders(until_done): report what was already done alongside the error that stopped it.
+    const inner = errorBody(err.error);
+    const p = err.partial;
+    return {
+      ...inner,
+      message: `${inner.message} Stopped after ${p.rounds} round(s); already cancelled ${p.cancelled.length}.`,
+      partial: {
+        cancelled: p.cancelled, already_closed: p.already_closed, failed: p.failed,
+        failures: p.failures.map((f) => ({ order_id: f.order_id, code: f.code, message: f.message })),
+        rounds: p.rounds,
+      },
+    };
+  }
   if (err instanceof OrderAttemptError) {
     const inner = errorBody(err.cause);
     if (isAmbiguousOrderFailure(err.cause)) {
