@@ -6,8 +6,16 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.2]
+
+### Security
+- Depends on `@cexyio/cexy` `0.1.0-dev.3` (exact pin), which **never follows HTTP redirects**.
+  With earlier SDK versions, a redirect answer re-sent the API key and secret to the redirect
+  target (also over plain `http://`), and a 307/308 could re-post an order. A redirect is now
+  reported as an error with code `UNEXPECTED_REDIRECT`. Upgrade from 0.1.0-dev.1.
+
 ### Changed
-- **Requires Node.js 22 or newer** (`engines` `>=22`). Node 20 reached end-of-life in April 2026.
+- **Breaking: requires Node.js 22 or newer** (`engines` `>=22`). Node 20 reached end-of-life in April 2026.
   CI tests Node 22, 24 and 26.
 - Build target `node22` (was `node20`).
 

@@ -41,7 +41,7 @@ export const INSTRUCTIONS = [
 
 export interface CreateServerOptions {
   config: McpConfig;
-  /** Injected into CexyClient (tests use a mock). Default: global fetch. */
+  /** Injected into CexyClient (tests use a mock). Default: global fetch. It must honour `redirect: "manual"`. */
   fetch?: FetchLike;
   logger?: Logger;
   /** Passed to CexyClient (tests disable the limiter and retries). */
