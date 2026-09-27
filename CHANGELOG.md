@@ -6,6 +6,8 @@ tool surface may still change).
 
 ## [Unreleased]
 
+- Requires Node.js 20 or newer (Node 18 is end-of-life and lacks the global `crypto.randomUUID`).
+
 ### Added
 - MCP server over stdio (`npx -y @cexyio/mcp`), built on `@cexyio/cexy` and the official
   `@modelcontextprotocol/sdk`.

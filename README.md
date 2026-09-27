@@ -14,7 +14,7 @@ MCP client) read market data and, with your API key, your balances, orders and h
 
 ## Install
 
-It needs Node.js 18 or newer. Nothing to install globally: MCP clients start it with `npx`.
+It needs Node.js 20 or newer. Nothing to install globally: MCP clients start it with `npx`.
 
 ### Claude Code
 

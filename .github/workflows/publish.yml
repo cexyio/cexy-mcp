@@ -30,7 +30,7 @@ jobs:
         with: {node-version: 22}
       - name: Tag matches package.json version
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
-      - name: The SDK dependency is a published version (no file:/link: specifiers)
+      - name: "The SDK dependency is a published version (no file:/link: specifiers)"
         run: |
           node -e '
             const d = require("./package.json").dependencies || {};
