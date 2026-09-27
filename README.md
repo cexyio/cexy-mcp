@@ -11,6 +11,7 @@ MCP client) read market data and, with your API key, your balances, orders and h
 - Built on the official TypeScript SDK, [`@cexyio/cexy`](https://github.com/cexyio/cexy-typescript).
 
 > **Status: 0.x prerelease.** Tool names and outputs may still change.
+> Pre-release: `npx -y @cexyio/mcp@next`; `latest` currently points at a pre-release until 1.0.
 
 ## Install
 
@@ -185,8 +186,7 @@ npm run build            # dist/cli.js (the bin) and dist/index.js
 npm run test:live        # opt-in: a few unauthenticated GETs to api.cexy.io
 ```
 
-This prerelease depends on the SDK from a sibling checkout (`"@cexyio/cexy": "file:../cexy-typescript"`).
-Released versions pin the published `@cexyio/cexy` version from npm.
+The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.0`).
 
 ## Security
 
