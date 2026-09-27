@@ -28,7 +28,7 @@ jobs:
       dist_tag: ${{ steps.pack.outputs.dist_tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: {fetch-depth: 0}
+        with: {fetch-depth: 0, persist-credentials: false}
       - name: The tagged commit is on main
         run: |
           git fetch --no-tags origin main
