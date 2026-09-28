@@ -6,6 +6,13 @@ tool surface may still change).
 
 ## [Unreleased]
 
+### Changed (CI)
+- New CI job `consumer`, with the same check in the publish build job, run on the exact tarball that
+  gets published. It installs the packed tarball into an empty project without dev dependencies,
+  starts the installed CLI over stdio with an empty environment, and checks that `initialize`
+  reports the package version and that `tools/list` returns the 9 read-only tools and no trading
+  tools. The script is `ci/consumer/check.mjs`; it is not part of the package.
+
 ## [0.1.0-dev.4]
 
 ### Fixed

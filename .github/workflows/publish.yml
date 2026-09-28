@@ -71,6 +71,8 @@ jobs:
           # Printed so a manually published tarball can be checked against what CI built
           # (the artifact digest covers the zip, not the tgz).
           (cd "$RUNNER_TEMP/pkg" && sha256sum *.tgz | sed 's/^/tarball sha256 /')
+      - name: The packed tarball works as users get it (empty project, no dev dependencies)
+        run: node ci/consumer/check.mjs "$RUNNER_TEMP/pkg/${{ steps.pack.outputs.tarball }}"
       - name: Dry-run the publish command (same command, same directory as the publish job; no upload)
         working-directory: ${{ github.workspace }}
         env:
