@@ -186,7 +186,7 @@ npm run build            # dist/cli.js (the bin) and dist/index.js
 npm run test:live        # opt-in: a few unauthenticated GETs to api.cexy.io
 ```
 
-The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.5`).
+The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.6`).
 
 ## Security
 

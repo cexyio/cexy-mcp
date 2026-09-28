@@ -6,6 +6,15 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.5] (2026-09-28)
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.6` (exact pin): API release H-1 types (`PRICE_UNAVAILABLE`,
+  withdrawal status `reverted`, typed ledger references), and the SDK's `until_done` loop now counts a
+  rate-limiter wait against its 2-minute budget.
+- `cancel_all_orders` description: it also cancels stop orders that have not triggered yet
+  (`pending_trigger`), as the exchange does since H-1.
+
 ### Changed (CI)
 - New CI job `consumer`, with the same check in the publish build job, run on the exact tarball that
   gets published. It installs the packed tarball into an empty project without dev dependencies,
