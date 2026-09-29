@@ -185,6 +185,24 @@ describe("read-key tools", () => {
     expect(h.calls[0]!.headers.get("x-api-key")).toBe(KEY_ENV.CEXY_API_KEY);
   });
 
+  it("get_balances lists held incoming transfers and defaults them to []", async () => {
+    h = await harness(KEY_ENV, {
+      "GET /account/balances": data([
+        {
+          asset: "USDT", available: "10", locked: "5", pending: "0", total: "15",
+          held_incoming: [{ transfer_id: "tr_1", amount: "5", available_at: "2026-09-30T00:00:00Z" }],
+        },
+        { asset: "BTC", available: "0.5", locked: "0", pending: "0", total: "0.5" },
+      ]),
+    });
+    const r = await h.call("get_balances");
+    const s = structured(r);
+    expect(s.balances[0].held_incoming).toEqual([{ transfer_id: "tr_1", amount: "5", available_at: "2026-09-30T00:00:00Z" }]);
+    expect(s.balances[0].locked).toBe("5");
+    expect(s.balances[1].held_incoming).toEqual([]);
+    expect(JSON.stringify(r.content)).toContain("already included in locked");
+  });
+
   it("get_order_history pages with cursor and direction", async () => {
     h = await harness(KEY_ENV, {
       "GET /trading/orders/history": { items: [order()], has_more: false },

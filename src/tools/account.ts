@@ -1,4 +1,4 @@
-import type { Deposit, Fill, LedgerEntry, Order, Withdrawal } from "@cexyio/cexy";
+import type { Balance, Deposit, Fill, LedgerEntry, Order, Withdrawal } from "@cexyio/cexy";
 import { z } from "zod";
 import { isZero } from "../decimal.js";
 import { InputError } from "../result.js";
@@ -122,8 +122,9 @@ export const accountTools: ToolDef[] = [
     tier: "read",
     title: "Balances",
     description:
-      "Your CEXY.io balances per asset (available, locked in orders, pending, total). Zero balances are hidden unless " +
-      "include_zero is true. Needs an API key with the read scope.",
+      "Your CEXY.io balances per asset (available, locked, pending, total). held_incoming lists incoming internal " +
+      "transfers still held (amount, available_at); their sum is ALREADY part of locked, so never add it again. Zero " +
+      "balances are hidden unless include_zero is true. Needs an API key with the read scope.",
     input: {
       asset: assetSchema.describe("Only this asset").optional(),
       include_zero: z.boolean().default(false).describe("Include assets with a zero total"),
@@ -135,10 +136,13 @@ export const accountTools: ToolDef[] = [
       const rows = all
         .filter((b) => !a || b.asset.toUpperCase() === a)
         .filter((b) => include_zero || !isZero(b.total))
-        .map((b) => pick(b, ["asset", "available", "locked", "pending", "total"]));
+        .map(balanceView);
       const hidden = all.length - rows.length;
+      const held = rows.reduce((n, b) => n + b.held_incoming.length, 0);
       return {
-        summary: `${plural(rows.length, "balance")}${!include_zero && !a && hidden > 0 ? ` (${hidden} zero balances hidden)` : ""}.`,
+        summary:
+          `${plural(rows.length, "balance")}${!include_zero && !a && hidden > 0 ? ` (${hidden} zero balances hidden)` : ""}` +
+          `${held ? `; ${plural(held, "incoming transfer")} still held (already included in locked)` : ""}.`,
         data: { count: rows.length, balances: rows },
       };
     },
@@ -275,3 +279,15 @@ export const accountTools: ToolDef[] = [
     },
   }),
 ];
+
+/** A balance row for tool output; held_incoming defaults to [] (older servers omit it). */
+function balanceView(b: Balance) {
+  return {
+    ...pick(b, ["asset", "available", "locked", "pending", "total"]),
+    held_incoming: (b.held_incoming ?? []).map((h) => ({
+      transfer_id: h.transfer_id,
+      amount: h.amount,
+      available_at: h.available_at,
+    })),
+  };
+}
