@@ -6,6 +6,15 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.6] (2026-09-29)
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.7` (exact pin): path ids `.` and `..` are rejected before any
+  request, and 408 is no longer retried by default.
+- `get_balances` rows now include `held_incoming` (incoming internal transfers still held: `transfer_id`,
+  `amount`, `available_at`; `[]` when none). Their sum is already part of `locked`; the description and the
+  summary say so, so a client does not count it twice.
+
 ## [0.1.0-dev.5] (2026-09-28)
 
 ### Changed
