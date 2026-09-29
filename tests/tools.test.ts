@@ -203,6 +203,52 @@ describe("read-key tools", () => {
     expect(JSON.stringify(r.content)).toContain("already included in locked");
   });
 
+  it("get_sub_account_balances reads one sub-account with a GET and the same rows as get_balances", async () => {
+    h = await harness(KEY_ENV, {
+      "GET /account/sub-accounts/sa_1/balances": data([
+        {
+          asset: "USDT", available: "1", locked: "2", pending: "0", total: "3",
+          held_incoming: [{ transfer_id: "tr_9", amount: "2", available_at: "2026-10-01T00:00:00Z" }],
+        },
+        { asset: "ETH", available: "0", locked: "0", pending: "0", total: "0" },
+      ]),
+    });
+    const r = await h.call("get_sub_account_balances", { id: "sa_1" });
+    const s = structured(r);
+    expect(s.sub_account_id).toBe("sa_1");
+    expect(s.balances).toEqual([
+      {
+        asset: "USDT", available: "1", locked: "2", pending: "0", total: "3",
+        held_incoming: [{ transfer_id: "tr_9", amount: "2", available_at: "2026-10-01T00:00:00Z" }],
+      },
+    ]);
+    expect(JSON.stringify(r.content)).toContain("already included in locked");
+    expect(h.calls.map((c) => `${c.method} ${c.path}`)).toEqual(["GET /account/sub-accounts/sa_1/balances"]);
+    expect(h.calls[0]!.body).toBeUndefined();
+  });
+
+  it("get_sub_account_balances passes a 404 through as NOT_FOUND", async () => {
+    h = await harness(KEY_ENV, {
+      "GET /account/sub-accounts/sa_other/balances": () => ({
+        status: 404,
+        body: { error: { code: "NOT_FOUND", message: "sub-account not found", request_id: "req_404" } },
+      }),
+    });
+    const r = await h.call("get_sub_account_balances", { id: "sa_other" });
+    expect(r.isError).toBe(true);
+    expect(structured(r).error).toMatchObject({ code: "NOT_FOUND", status: 404, retryable: false });
+  });
+
+  it("get_sub_account_balances refuses path-escaping ids without any request", async () => {
+    h = await harness(KEY_ENV, {});
+    for (const id of [".", ".."]) {
+      const r = await h.call("get_sub_account_balances", { id });
+      expect(r.isError, id).toBe(true);
+    }
+    expect((await h.call("get_sub_account_balances", { id: "" })).isError).toBe(true);
+    expect(h.calls).toHaveLength(0);
+  });
+
   it("get_order_history pages with cursor and direction", async () => {
     h = await harness(KEY_ENV, {
       "GET /trading/orders/history": { items: [order()], has_more: false },

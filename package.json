@@ -1,6 +1,6 @@
 {
   "name": "@cexyio/mcp",
-  "version": "0.1.0-dev.6",
+  "version": "0.1.0-dev.7",
   "description": "Official Model Context Protocol (MCP) server for the CEXY.io exchange API: market data, account reads and opt-in trading",
   "license": "MIT",
   "author": "CEXY.io",

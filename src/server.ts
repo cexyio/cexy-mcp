@@ -28,9 +28,22 @@ export const FORBIDDEN_TOOL_PATTERNS: readonly RegExp[] = [
   /export/i,
 ];
 
+/**
+ * Exact tool names allowed although a forbidden pattern matches them. Each one is read-only and was
+ * approved on its own (list_withdrawals: history; get_sub_account_balances: parent-only balances
+ * read). Any other name containing these fragments stays refused.
+ */
+export const FORBIDDEN_PATTERN_EXEMPTIONS: ReadonlySet<string> = new Set(["list_withdrawals", "get_sub_account_balances"]);
+
+/** True when a tool with this name must never be registered. */
+export function isForbiddenToolName(name: string): boolean {
+  return !FORBIDDEN_PATTERN_EXEMPTIONS.has(name) && FORBIDDEN_TOOL_PATTERNS.some((p) => p.test(name));
+}
+
 export const INSTRUCTIONS = [
   "CEXY.io exchange tools: market data (markets, tickers, order books, trades, candles, assets, fees) and, when an",
-  "API key is configured, read-only views of the user's balances, orders, trades, deposits, withdrawals and ledger.",
+  "API key is configured, read-only views of the user's balances (and their sub-accounts' balances), orders, trades,",
+  "deposits, withdrawals and ledger.",
   "The server is read-only by default. Trading tools (place_order, cancel_order, cancel_all_orders) exist only when",
   "the user starts it with CEXY_MCP_ENABLE_TRADING=true and an API key with the trade scope; orders are then REAL",
   "and irreversible once filled, so confirm every order with the user first. Optional guardrails: CEXY_MCP_ALLOWED_MARKETS",
@@ -61,7 +74,7 @@ export function toolsFor(config: McpConfig): ToolDef[] {
   if (config.apiKey !== null && config.apiSecret !== null) tools.push(...accountTools);
   if (config.tradingEnabled && config.apiKey !== null) tools.push(...tradeTools);
   for (const t of tools) {
-    if (FORBIDDEN_TOOL_PATTERNS.some((p) => p.test(t.name)) && t.name !== "list_withdrawals") {
+    if (isForbiddenToolName(t.name)) {
       throw new Error(`refusing to register forbidden tool ${t.name}`);
     }
   }
