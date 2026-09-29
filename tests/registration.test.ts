@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadConfig } from "../src/config.js";
-import { FORBIDDEN_TOOL_PATTERNS, INSTRUCTIONS, toolsFor } from "../src/server.js";
+import { FORBIDDEN_PATTERN_EXEMPTIONS, FORBIDDEN_TOOL_PATTERNS, INSTRUCTIONS, isForbiddenToolName, toolsFor } from "../src/server.js";
 import { VERSION } from "../src/version.js";
 import { KEY_ENV, TRADE_ENV, harness, type Harness } from "./helpers.js";
 
@@ -18,6 +18,7 @@ const PUBLIC = [
 ];
 const READ = [
   "get_balances",
+  "get_sub_account_balances",
   "list_open_orders",
   "get_order",
   "get_order_history",
@@ -86,11 +87,26 @@ describe("tool registration", () => {
       const listed = (await h.client.listTools()).tools.map((t) => t.name);
       for (const name of listed) {
         expect(FORBIDDEN_NAMES).not.toContain(name);
-        expect(FORBIDDEN_FRAGMENTS.test(name) && name !== "list_withdrawals").toBe(false);
-        expect(FORBIDDEN_TOOL_PATTERNS.some((p) => p.test(name))).toBe(false);
+        expect(FORBIDDEN_FRAGMENTS.test(name) && !FORBIDDEN_PATTERN_EXEMPTIONS.has(name)).toBe(false);
+        expect(isForbiddenToolName(name)).toBe(false);
       }
     });
   }
+
+  it("exempts only exact approved names from the forbidden patterns", () => {
+    expect([...FORBIDDEN_PATTERN_EXEMPTIONS].sort()).toEqual(["get_sub_account_balances", "list_withdrawals"]);
+    // The sub_account pattern itself stays: only the exact exempt name passes.
+    expect(FORBIDDEN_TOOL_PATTERNS.some((p) => p.test("get_sub_account_balances"))).toBe(true);
+    expect(isForbiddenToolName("get_sub_account_balances")).toBe(false);
+    for (const name of [
+      "transfer_sub_account", "get_sub_account_transfer", "sub_account_transfer", "list_sub_accounts",
+      "create_sub_account", "get_sub_account_balances_v2", "get_sub_account_balances ", "Get_Sub_Account_Balances",
+      "get_subaccount_balances", "withdraw", "list_withdrawals_and_transfers",
+    ]) {
+      expect(isForbiddenToolName(name), name).toBe(true);
+    }
+    expect(toolsFor(loadConfig(KEY_ENV)).map((t) => t.name)).toContain("get_sub_account_balances");
+  });
 
   it("annotates read tools read-only/open-world and trade tools destructive", async () => {
     h = await harness(TRADE_ENV);

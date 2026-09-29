@@ -113,7 +113,8 @@ are annotated `destructiveHint: true`.
 
 | Tool | What it returns |
 |---|---|
-| `get_balances` | Balances per asset; zero balances hidden unless `include_zero: true` |
+| `get_balances` | Balances per asset (with `held_incoming`, already part of `locked`); zero balances hidden unless `include_zero: true` |
+| `get_sub_account_balances` | Balances of one of your sub-accounts, by `id` (parent account only; `NOT_FOUND` for any other id) |
 | `list_open_orders` | Your open orders; optional `symbol`, `status` |
 | `get_order` | One order, by `order_id` or `client_order_id` |
 | `get_order_history` | Your orders, paged with `cursor`, `limit`, `direction` |
@@ -130,7 +131,8 @@ are annotated `destructiveHint: true`.
 | `cancel_order` | Cancels one order, by `order_id` or `client_order_id` |
 | `cancel_all_orders` | Cancels your open orders in **one** market. `symbol` is required; there is no account-wide cancel. |
 
-**Never available:** withdrawals, transfers (including sub-account transfers), liquidity-pool
+**Never available:** withdrawals, transfers (including sub-account transfers), any other sub-account action
+(reading a sub-account's balances is the only one), liquidity-pool
 join/exit, deposit-address lookup (the API creates an address on first use), API-key management,
 login/2FA, exports and any admin function. A test asserts that none of these ever appear.
 

@@ -6,6 +6,16 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.7] (2026-09-29)
+
+### Added
+- `get_sub_account_balances` (read key, read-only): the balances of one of your sub-accounts, by `id`, with the
+  same rows as `get_balances` (zero balances hidden, `held_incoming` already part of `locked`). Only the parent
+  account can read them; `NOT_FOUND` means the id is not one of your sub-accounts. Makes one GET request.
+- `FORBIDDEN_PATTERN_EXEMPTIONS` and `isForbiddenToolName` (exported): the forbidden-name patterns are unchanged,
+  and only the exact names `list_withdrawals` and `get_sub_account_balances` are exempt. Every other name with a
+  sub-account, transfer or withdraw fragment is still refused at registration.
+
 ## [0.1.0-dev.6] (2026-09-29)
 
 ### Changed

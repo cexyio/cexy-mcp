@@ -149,6 +149,33 @@ export const accountTools: ToolDef[] = [
   }),
 
   defineTool({
+    name: "get_sub_account_balances",
+    tier: "read",
+    title: "Sub-account balances",
+    description:
+      "Balances of one of YOUR sub-accounts, by its id (same fields as get_balances, zero balances hidden). Read " +
+      "only. Only the parent account can read them: NOT_FOUND means the id is not one of your sub-accounts (it says " +
+      "nothing about whether such an account exists). held_incoming amounts are already part of locked, so never add " +
+      "them again. Needs an API key with the read scope.",
+    input: {
+      id: z.string().min(1).max(64).describe("The sub-account's id"),
+    },
+    annotations: READ_ANNOTATIONS,
+    handler: async ({ id }, { client }) => {
+      const all = await client.account.subAccountBalances(id);
+      const rows = all.filter((b) => !isZero(b.total)).map(balanceView);
+      const hidden = all.length - rows.length;
+      const held = rows.reduce((n, b) => n + b.held_incoming.length, 0);
+      return {
+        summary:
+          `${plural(rows.length, "balance")} in sub-account ${id}${hidden > 0 ? ` (${hidden} zero balances hidden)` : ""}` +
+          `${held ? `; ${plural(held, "incoming transfer")} still held (already included in locked)` : ""}.`,
+        data: { sub_account_id: id, count: rows.length, balances: rows },
+      };
+    },
+  }),
+
+  defineTool({
     name: "list_open_orders",
     tier: "read",
     title: "Open orders",
