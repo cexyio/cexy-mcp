@@ -12,11 +12,9 @@ import { USER_AGENT_SUFFIX, VERSION } from "./version.js";
 
 export const SERVER_NAME = "cexy";
 
-/**
- * Tool names that must never exist in this server, whatever the configuration: fund
- * movements, address creation, key management, auth, admin and exports.
- */
-export const FORBIDDEN_TOOL_PATTERNS: readonly RegExp[] = [
+// The guard reads only these private copies: the exported lists below are frozen snapshots, so
+// code embedding this package cannot change what is refused.
+const FORBIDDEN_PATTERNS: readonly RegExp[] = [
   /withdraw(?!als$)/i, // create_withdrawal, withdraw, ... (list_withdrawals is the only allowed match)
   /transfer/i,
   /sub_?account/i,
@@ -27,17 +25,25 @@ export const FORBIDDEN_TOOL_PATTERNS: readonly RegExp[] = [
   /admin|operator|internal/i,
   /export/i,
 ];
+const EXEMPTIONS: ReadonlySet<string> = new Set(["list_withdrawals", "get_sub_account_balances"]);
+
+/**
+ * Tool names that must never exist in this server, whatever the configuration: fund
+ * movements, address creation, key management, auth, admin and exports. A frozen copy, for
+ * reading only.
+ */
+export const FORBIDDEN_TOOL_PATTERNS: readonly RegExp[] = Object.freeze(FORBIDDEN_PATTERNS.map((p) => new RegExp(p.source, p.flags)));
 
 /**
  * Exact tool names allowed although a forbidden pattern matches them. Each one is read-only and was
  * approved on its own (list_withdrawals: history; get_sub_account_balances: parent-only balances
- * read). Any other name containing these fragments stays refused.
+ * read). Any other name containing these fragments stays refused. A frozen copy, for reading only.
  */
-export const FORBIDDEN_PATTERN_EXEMPTIONS: ReadonlySet<string> = new Set(["list_withdrawals", "get_sub_account_balances"]);
+export const FORBIDDEN_PATTERN_EXEMPTIONS: readonly string[] = Object.freeze([...EXEMPTIONS]);
 
 /** True when a tool with this name must never be registered. */
 export function isForbiddenToolName(name: string): boolean {
-  return !FORBIDDEN_PATTERN_EXEMPTIONS.has(name) && FORBIDDEN_TOOL_PATTERNS.some((p) => p.test(name));
+  return !EXEMPTIONS.has(name) && FORBIDDEN_PATTERNS.some((p) => p.test(name));
 }
 
 export const INSTRUCTIONS = [

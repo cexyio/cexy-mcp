@@ -87,7 +87,7 @@ describe("tool registration", () => {
       const listed = (await h.client.listTools()).tools.map((t) => t.name);
       for (const name of listed) {
         expect(FORBIDDEN_NAMES).not.toContain(name);
-        expect(FORBIDDEN_FRAGMENTS.test(name) && !FORBIDDEN_PATTERN_EXEMPTIONS.has(name)).toBe(false);
+        expect(FORBIDDEN_FRAGMENTS.test(name) && !FORBIDDEN_PATTERN_EXEMPTIONS.includes(name)).toBe(false);
         expect(isForbiddenToolName(name)).toBe(false);
       }
     });
@@ -95,6 +95,13 @@ describe("tool registration", () => {
 
   it("exempts only exact approved names from the forbidden patterns", () => {
     expect([...FORBIDDEN_PATTERN_EXEMPTIONS].sort()).toEqual(["get_sub_account_balances", "list_withdrawals"]);
+    // The exported lists are frozen copies: changing them is refused and never affects the guard.
+    expect(Object.isFrozen(FORBIDDEN_PATTERN_EXEMPTIONS)).toBe(true);
+    expect(Object.isFrozen(FORBIDDEN_TOOL_PATTERNS)).toBe(true);
+    expect(() => (FORBIDDEN_PATTERN_EXEMPTIONS as string[]).push("transfer_funds")).toThrow(TypeError);
+    expect(() => (FORBIDDEN_TOOL_PATTERNS as RegExp[]).splice(0)).toThrow(TypeError);
+    expect(isForbiddenToolName("transfer_funds")).toBe(true);
+    expect(isForbiddenToolName("create_withdrawal")).toBe(true);
     // The sub_account pattern itself stays: only the exact exempt name passes.
     expect(FORBIDDEN_TOOL_PATTERNS.some((p) => p.test("get_sub_account_balances"))).toBe(true);
     expect(isForbiddenToolName("get_sub_account_balances")).toBe(false);

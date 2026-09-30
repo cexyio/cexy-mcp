@@ -1,6 +1,6 @@
 {
   "name": "@cexyio/mcp",
-  "version": "0.1.0-dev.7",
+  "version": "0.1.0-dev.8",
   "description": "Official Model Context Protocol (MCP) server for the CEXY.io exchange API: market data, account reads and opt-in trading",
   "license": "MIT",
   "author": "CEXY.io",
@@ -50,7 +50,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@cexyio/cexy": "0.1.0-dev.7",
+    "@cexyio/cexy": "0.1.0-dev.8",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "zod": "^4.1.0"
   },
@@ -67,5 +67,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }
