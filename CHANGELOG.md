@@ -6,6 +6,21 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.8] (2026-09-30)
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.8` (exact pin). That SDK release changes only its WebSocket
+  client (private subscriptions after a server-side sign-out); this server uses REST only.
+- `FORBIDDEN_TOOL_PATTERNS` and `FORBIDDEN_PATTERN_EXEMPTIONS` are exported as frozen copies, and
+  the registration guard (`isForbiddenToolName`) reads private lists. Code embedding this package
+  can no longer add an exemption or remove a pattern at runtime. `FORBIDDEN_PATTERN_EXEMPTIONS` is
+  now a frozen `readonly string[]` instead of a `ReadonlySet` (use `.includes`, not `.has`).
+
+### Security
+- Dev dependency: `esbuild` is forced to `^0.28.1` through `overrides` (tsup 8.5.1 still asks for
+  `^0.27`). This fixes a low-severity advisory in esbuild's development server on Windows, which
+  this project does not use. The built `dist/` is byte-identical with 0.27.7 and 0.28.2.
+
 ## [0.1.0-dev.7] (2026-09-29)
 
 ### Added
