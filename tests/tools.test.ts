@@ -218,13 +218,24 @@ describe("read-key tools", () => {
     expect(s.sub_account_id).toBe("sa_1");
     expect(s.balances).toEqual([
       {
-        asset: "USDT", available: "1", locked: "2", pending: "0", total: "3",
+        asset: "USDT", available: "1", locked: "2", pending: "0", total: "3", sequence: 0,
         held_incoming: [{ transfer_id: "tr_9", amount: "2", available_at: "2026-10-01T00:00:00Z" }],
       },
     ]);
     expect(JSON.stringify(r.content)).toContain("already included in locked");
     expect(h.calls.map((c) => `${c.method} ${c.path}`)).toEqual(["GET /account/sub-accounts/sa_1/balances"]);
     expect(h.calls[0]!.body).toBeUndefined();
+  });
+
+  it("get_balances rows carry sequence (0 when the server omits it)", async () => {
+    h = await harness(KEY_ENV, {
+      "GET /account/balances": data([
+        { asset: "USDT", available: "1", locked: "0", pending: "0", total: "1", held_incoming: [], sequence: 42 },
+        { asset: "BTC", available: "1", locked: "0", pending: "0", total: "1", held_incoming: [] },
+      ]),
+    });
+    const s = structured(await h.call("get_balances"));
+    expect(s.balances.map((b: { asset: string; sequence: number }) => [b.asset, b.sequence])).toEqual([["USDT", 42], ["BTC", 0]]);
   });
 
   it("get_sub_account_balances passes a 404 through as NOT_FOUND", async () => {

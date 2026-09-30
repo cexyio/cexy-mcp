@@ -6,6 +6,15 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.9] (2026-09-30)
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.9` (exact pin). That SDK release adds live balances and
+  WebSocket sequence handling; this server uses REST only.
+- `get_balances` and `get_sub_account_balances` rows include `sequence`: it rises with every change
+  to that balance (0 when the server does not send it), so two readings of the same asset can be
+  ordered. The `get_balances` description says so.
+
 ## [0.1.0-dev.8] (2026-09-30)
 
 ### Changed
