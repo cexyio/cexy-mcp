@@ -123,8 +123,9 @@ export const accountTools: ToolDef[] = [
     title: "Balances",
     description:
       "Your CEXY.io balances per asset (available, locked, pending, total). held_incoming lists incoming internal " +
-      "transfers still held (amount, available_at); their sum is ALREADY part of locked, so never add it again. Zero " +
-      "balances are hidden unless include_zero is true. Needs an API key with the read scope.",
+      "transfers still held (amount, available_at); their sum is ALREADY part of locked, so never add it again. " +
+      "sequence rises with every change to a balance: compare two readings of the same asset to tell which is newer. " +
+      "Zero balances are hidden unless include_zero is true. Needs an API key with the read scope.",
     input: {
       asset: assetSchema.describe("Only this asset").optional(),
       include_zero: z.boolean().default(false).describe("Include assets with a zero total"),
@@ -311,6 +312,8 @@ export const accountTools: ToolDef[] = [
 function balanceView(b: Balance) {
   return {
     ...pick(b, ["asset", "available", "locked", "pending", "total"]),
+    // Rises with every change to this balance (0: never changed; servers without it give 0).
+    sequence: typeof b.sequence === "number" ? b.sequence : 0,
     held_incoming: (b.held_incoming ?? []).map((h) => ({
       transfer_id: h.transfer_id,
       amount: h.amount,
