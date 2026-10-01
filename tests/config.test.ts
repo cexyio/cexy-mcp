@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { McpConfigError, loadConfig, publicConfigView } from "../src/config.js";
+import { McpConfigError, loadConfig, publicConfigView, stripTrailingSlashes } from "../src/config.js";
 import { TEST_KEY, TEST_SECRET } from "./helpers.js";
 
 describe("loadConfig", () => {
@@ -100,5 +100,13 @@ describe("loadConfig", () => {
     expect(view).not.toContain(TEST_KEY);
     expect(view).not.toContain(TEST_SECRET);
     expect(view).toContain('"authenticated":true');
+  });
+
+  it("strips trailing slashes from CEXY_BASE_URL in linear time (no regex backtracking)", () => {
+    expect(loadConfig({ CEXY_BASE_URL: "https://api.cexy.io///" }).baseUrl).toBe("https://api.cexy.io");
+    const t0 = performance.now();
+    expect(() => loadConfig({ CEXY_BASE_URL: "https://api.cexy.io" + "/".repeat(100_000) + "x" })).not.toThrow(/timeout/);
+    expect(stripTrailingSlashes("https://api.cexy.io" + "/".repeat(100_000))).toBe("https://api.cexy.io");
+    expect(performance.now() - t0).toBeLessThan(500);
   });
 });

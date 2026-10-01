@@ -183,6 +183,9 @@ describe("read-key tools", () => {
     s = structured(await h.call("get_balances", { include_zero: true }));
     expect(s.count).toBe(2);
     expect(h.calls[0]!.headers.get("x-api-key")).toBe(KEY_ENV.CEXY_API_KEY);
+    // Requests are signed; the secret is never sent (the API refuses it).
+    expect(h.calls[0]!.headers.get("x-api-signature")).toMatch(/^[0-9a-f]{64}$/);
+    expect(h.calls[0]!.headers.has("x-api-secret")).toBe(false);
   });
 
   it("get_balances lists held incoming transfers and defaults them to []", async () => {

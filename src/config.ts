@@ -43,6 +43,13 @@ function parseTradingFlag(raw: string | undefined): { enabled: boolean; ignored:
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
+/** Removes trailing "/" in linear time (a `/\/+$/` regex is polynomial on a long run of slashes). */
+export function stripTrailingSlashes(s: string): string {
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 0x2f) end--;
+  return s.slice(0, end);
+}
+
 function nonEmpty(raw: string | undefined): string | null {
   const v = raw?.trim();
   return v ? v : null;
@@ -58,7 +65,7 @@ export function loadConfig(env: Record<string, string | undefined>): McpConfig {
     );
   }
 
-  const baseUrl = (nonEmpty(env.CEXY_BASE_URL) ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = stripTrailingSlashes(nonEmpty(env.CEXY_BASE_URL) ?? DEFAULT_BASE_URL);
   let parsed: URL;
   try {
     parsed = new URL(baseUrl);

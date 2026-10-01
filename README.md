@@ -77,7 +77,7 @@ Run `npx -y @cexyio/mcp` as a stdio server and pass the configuration as environ
 | Variable | Default | Meaning |
 |---|---|---|
 | `CEXY_API_KEY` | unset | API key id (`ak_...`). Optional; must be set together with the secret. |
-| `CEXY_API_SECRET` | unset | API key secret. Optional; must be set together with the key. |
+| `CEXY_API_SECRET` | unset | API key secret. Optional; must be set together with the key. It is used only to sign requests locally and is never sent. |
 | `CEXY_BASE_URL` | `https://api.cexy.io` | API base URL. Must be `https://`. |
 | `CEXY_ALLOW_INSECURE` | unset | `true` allows an `http://` base URL, and only for `localhost`, `127.0.0.1` or `::1` (local development). |
 | `CEXY_MCP_ENABLE_TRADING` | `false` | Exactly `true` registers the trading tools (needs a key with the `trade` scope). Any other value, including `1`, `yes` and `TRUE`, leaves trading off. |
@@ -188,7 +188,7 @@ npm run build            # dist/cli.js (the bin) and dist/index.js
 npm run test:live        # opt-in: a few unauthenticated GETs to api.cexy.io
 ```
 
-The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.9`).
+The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.12`).
 
 ## Security
 

@@ -93,7 +93,10 @@ export function createServer(options: CreateServerOptions): CexyMcp {
   const logger = options.logger ?? createLogger(redactor);
 
   const client = new CexyClient({
-    ...(config.apiKey !== null && config.apiSecret !== null ? { apiKey: config.apiKey, apiSecret: config.apiSecret } : {}),
+    // Request signing: the secret never leaves the process (the API refuses the secret header).
+    ...(config.apiKey !== null && config.apiSecret !== null
+      ? { apiKey: config.apiKey, apiSecret: config.apiSecret, auth: "hmac" as const }
+      : {}),
     baseUrl: config.baseUrl,
     userAgentSuffix: USER_AGENT_SUFFIX,
     ...(options.fetch ? { fetch: options.fetch } : {}),
