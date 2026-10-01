@@ -6,6 +6,19 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.10] (2026-10-01)
+
+### Changed
+- **Breaking: requests are signed.** Depends on `@cexyio/cexy` `0.1.0-dev.12` (exact pin) and creates
+  its client with `auth: "hmac"`: account and trading tools sign every request and the secret is
+  never sent. The API is switching off the old secret header (`SIGNATURE_REQUIRED`); earlier
+  versions of this server stop working against it: upgrade.
+- Keys issued before 2026-10-01 can't sign (`KEY_NOT_SIGNABLE`): create a new API key.
+
+### Fixed
+- `CEXY_BASE_URL` trailing slashes are stripped in linear time (a `/\/+$/` regex was polynomial on a
+  long run of slashes).
+
 ## [0.1.0-dev.9] (2026-09-30)
 
 ### Changed
