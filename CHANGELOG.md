@@ -6,6 +6,20 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.11] (2026-10-07)
+
+### Changed
+- Depends on `@cexyio/cexy` `0.1.0-dev.14` (exact pin; was `0.1.0-dev.12`). Those SDK releases add
+  futures data (dev.13), `order_closed` notifications, a smaller `LedgerEntryKind` list and a
+  WebSocket sign-out fix (dev.14). This server uses REST only and exposes none of them, so the tool
+  list and every tool's input and output are unchanged.
+
+### Security
+- Depends on `@modelcontextprotocol/sdk` `^1.32.1` (was `^1.30.1`): versions before 1.31.0 carry
+  GHSA-6qxp-vccf-f47h (an MCP OAuth client could send credentials to an authorization server chosen
+  by the MCP server). This server does not use the SDK's OAuth client, but a fresh install now
+  resolves a patched version.
+
 ## [0.1.0-dev.10] (2026-10-01)
 
 ### Changed
