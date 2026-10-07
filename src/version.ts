@@ -1,3 +1,3 @@
 /** Kept in sync with package.json (a test checks it). */
-export const VERSION = "0.1.0-dev.10";
+export const VERSION = "0.1.0-dev.11";
 export const USER_AGENT_SUFFIX = `cexy-mcp/${VERSION}`;
