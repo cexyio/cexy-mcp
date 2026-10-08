@@ -163,8 +163,8 @@ Errors come back as MCP tool errors with a structured body:
 - **Trading is opt-in, with caps.** If you enable it, also set `CEXY_MCP_MAX_ORDER_NOTIONAL` and
   `CEXY_MCP_ALLOWED_MARKETS`. With a notional cap set, `place_order` refuses any order whose value
   it cannot bound: limit buys use price x quantity, limit sells use the higher of the price and the
-  best bid, market buys are priced by walking the current asks (or use `quote_quantity`), market
-  sells use the best bid, and stop orders whose fill price depends on a future book are refused.
+  best bid, market buys are priced by walking the current asks (or use `quote_quantity`, a budget
+  that includes the taker fee), market sells use the best bid, and stop orders whose fill price depends on a future book are refused.
   The check is made against the book at the time of the call; fast markets can move.
 - **Orders are real** and irreversible once filled. Ask your assistant to confirm each order with
   you; most MCP clients also ask for approval before calling a tool marked destructive.
