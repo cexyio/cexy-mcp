@@ -82,7 +82,7 @@ Run `npx -y @cexyio/mcp` as a stdio server and pass the configuration as environ
 | `CEXY_ALLOW_INSECURE` | unset | `true` allows an `http://` base URL, and only for `localhost`, `127.0.0.1` or `::1` (local development). |
 | `CEXY_MCP_ENABLE_TRADING` | `false` | Exactly `true` registers the trading tools (needs a key with the `trade` scope). Any other value, including `1`, `yes` and `TRUE`, leaves trading off. |
 | `CEXY_MCP_MAX_ORDER_NOTIONAL` | unset | Per-order cap, in the market's quote currency (e.g. `100` = 100 USDT on BTC/USDT). |
-| `CEXY_MCP_ALLOWED_MARKETS` | unset (all) | Comma-separated markets `place_order` may trade, e.g. `BTC/USDT,ETH/USDT`. |
+| `CEXY_MCP_ALLOWED_MARKETS` | unset (all) | Comma-separated markets `place_order` may trade and `cancel_orders` may cancel in, e.g. `BTC/USDT,ETH/USDT`. `cancel_order` (one order) and `cancel_all_orders` (one named market) do not check it: cancelling only reduces exposure. |
 | `CEXY_MCP_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. Logs go to stderr only. |
 
 The server refuses to start when only one of the key and the secret is set, when the base URL
@@ -189,7 +189,7 @@ npm run build            # dist/cli.js (the bin) and dist/index.js
 npm run test:live        # opt-in: a few unauthenticated GETs to api.cexy.io
 ```
 
-The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.14`).
+The server depends on the published SDK, pinned to an exact version (`@cexyio/cexy` `0.1.0-dev.17`).
 
 ## Security
 
