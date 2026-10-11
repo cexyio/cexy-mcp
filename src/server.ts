@@ -50,7 +50,7 @@ export const INSTRUCTIONS = [
   "CEXY.io exchange tools: market data (markets, tickers, order books, trades, candles, assets, fees) and, when an",
   "API key is configured, read-only views of the user's balances (and their sub-accounts' balances), orders, trades,",
   "deposits, withdrawals and ledger.",
-  "The server is read-only by default. Trading tools (place_order, cancel_order, cancel_all_orders) exist only when",
+  "The server is read-only by default. Trading tools (place_order, cancel_order, cancel_orders, cancel_all_orders) exist only when",
   "the user starts it with CEXY_MCP_ENABLE_TRADING=true and an API key with the trade scope; orders are then REAL",
   "and irreversible once filled, so confirm every order with the user first. Optional guardrails: CEXY_MCP_ALLOWED_MARKETS",
   "and CEXY_MCP_MAX_ORDER_NOTIONAL. This server never moves funds: it has no withdrawal, transfer or deposit-address",

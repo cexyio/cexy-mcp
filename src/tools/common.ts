@@ -86,6 +86,13 @@ export const uuidSchema = z
 
 export const orderIdSchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/, "invalid order id");
 
+/** The exchange's rule for a client order id (1 to 64 of A-Z a-z 0-9 _ - . :), minus "." and "..",
+ * which the exchange accepts but which can never be looked up or cancelled by id. */
+export const clientOrderIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_\-.:]{1,64}$/, "client_order_id is 1 to 64 characters of A-Z a-z 0-9 _ - . :")
+  .refine((s) => s !== "." && s !== "..", 'client_order_id must not be "." or ".."');
+
 // ---- compact views -------------------------------------------------------------------------
 
 export function upper(s: string): string {
