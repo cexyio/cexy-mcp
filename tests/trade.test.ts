@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { TRADE_ENV, data, harness, order, structured, type Call, type Harness } from "./helpers.js";
+import { TRADE_ENV, data, harness, order, structured, text, type Call, type Harness } from "./helpers.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -259,12 +259,126 @@ describe("cancel tools", () => {
     expect(err.partial).toMatchObject({ cancelled: ["a"], rounds: 2 });
   });
 
-  it("cancel_order by client_order_id resolves the id first", async () => {
+  it("cancel_order by client_order_id is one DELETE by client id, no lookup", async () => {
     h = await harness(env(), {
-      "GET /trading/orders/by-client-id/cid-1": data(order({ id: "ord_7" })),
-      "DELETE /trading/orders/ord_7": data(order({ id: "ord_7", status: "cancelled" })),
+      "DELETE /trading/orders/by-client-id/cid-1": data(order({ id: "ord_7", status: "cancelled" })),
     });
     const r = await h.call("cancel_order", { client_order_id: "cid-1" });
     expect(structured(r).order).toMatchObject({ id: "ord_7", status: "cancelled" });
+    expect(h.calls.map((c) => `${c.method} ${c.path}`)).toEqual(["DELETE /trading/orders/by-client-id/cid-1"]);
+  });
+
+  it("cancel_order refuses a client_order_id outside the exchange's rule", async () => {
+    h = await harness(env(), {});
+    for (const bad of ["..", ".", "a b", "a/b", "x".repeat(65)]) {
+      const r = await h.call("cancel_order", { client_order_id: bad });
+      expect(r.isError, bad).toBe(true);
+    }
+    expect(h.calls).toEqual([]);
+  });
+});
+
+/** Echoes a cancel-batch: every entry cancelled. */
+const cancelBatchRoute = (c: Call) => {
+  const orders = (c.body as { orders: { order_id?: string; client_order_id?: string }[] }).orders;
+  const results = orders.map((e, i) => ({
+    index: i,
+    order_id: e.order_id ?? null,
+    client_order_id: e.client_order_id ?? null,
+    order: order({ id: e.order_id ?? `ord_${i}`, status: "cancelled" }),
+    error: null,
+  }));
+  return { body: data({ cancelled: orders.length, failed: 0, results }) };
+};
+const batchPosts = (calls: Call[]) => calls.filter((c) => c.method === "POST" && c.path === "/trading/orders/cancel-batch");
+
+describe("cancel_orders", () => {
+  it("cancels several orders in one request, by order_id and client_order_id", async () => {
+    h = await harness(env(), { "POST /trading/orders/cancel-batch": cancelBatchRoute });
+    const r = await h.call("cancel_orders", { orders: [{ order_id: "ord_1" }, { client_order_id: "cid-2" }] });
+    expect(r.isError, JSON.stringify(r.content)).toBeFalsy();
+    const s = structured(r);
+    expect([s.cancelled, s.failed, s.unknown]).toEqual([2, 0, 0]);
+    expect(s.results.map((x: { outcome: string }) => x.outcome)).toEqual(["cancelled", "cancelled"]);
+    expect(batchPosts(h.calls).map((c) => c.body)).toEqual([{ orders: [{ order_id: "ord_1" }, { client_order_id: "cid-2" }] }]);
+    expect(h.calls.filter((c) => c.method === "GET")).toEqual([]);
+  });
+
+  it("reports a per-entry failure without stopping the rest", async () => {
+    h = await harness(env(), {
+      "POST /trading/orders/cancel-batch": data({
+        cancelled: 1,
+        failed: 1,
+        results: [
+          { index: 0, order_id: "ord_1", client_order_id: null, order: order({ id: "ord_1", status: "cancelled" }), error: null },
+          {
+            index: 1,
+            order_id: "ord_2",
+            client_order_id: null,
+            order: null,
+            error: { code: "INVALID_STATE", message: "This order is no longer open", retryable: false },
+          },
+        ],
+      }),
+    });
+    const s = structured(await h.call("cancel_orders", { orders: [{ order_id: "ord_1" }, { order_id: "ord_2" }] }));
+    expect([s.cancelled, s.failed]).toEqual([1, 1]);
+    expect(s.results[1]).toMatchObject({ outcome: "failed", error: { code: "INVALID_STATE" } });
+  });
+
+  it("with CEXY_MCP_ALLOWED_MARKETS, checks every entry's market first", async () => {
+    h = await harness(env({ CEXY_MCP_ALLOWED_MARKETS: "BTC/USDT" }), {
+      "GET /trading/orders/ord_1": data(order({ id: "ord_1", symbol: "BTC/USDT" })),
+      "GET /trading/orders/by-client-id/cid-2": data(order({ id: "ord_2", symbol: "BTC/USDT" })),
+      "POST /trading/orders/cancel-batch": cancelBatchRoute,
+    });
+    const r = await h.call("cancel_orders", { orders: [{ order_id: "ord_1" }, { client_order_id: "cid-2" }] });
+    expect(r.isError, JSON.stringify(r.content)).toBeFalsy();
+    expect(batchPosts(h.calls)).toHaveLength(1);
+  });
+
+  it("refuses the whole call when one entry is outside CEXY_MCP_ALLOWED_MARKETS", async () => {
+    h = await harness(env({ CEXY_MCP_ALLOWED_MARKETS: "BTC/USDT" }), {
+      "GET /trading/orders/ord_1": data(order({ id: "ord_1", symbol: "BTC/USDT" })),
+      "GET /trading/orders/ord_2": data(order({ id: "ord_2", symbol: "ETH/USDT" })),
+      "POST /trading/orders/cancel-batch": cancelBatchRoute,
+    });
+    const r = await h.call("cancel_orders", { orders: [{ order_id: "ord_1" }, { order_id: "ord_2" }] });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toMatch(/ETH\/USDT/);
+    expect(batchPosts(h.calls)).toEqual([]);
+  });
+
+  it("refuses the whole call when an entry's market cannot be checked", async () => {
+    h = await harness(env({ CEXY_MCP_ALLOWED_MARKETS: "BTC/USDT" }), {
+      "GET /trading/orders/ord_1": data(order({ id: "ord_1", symbol: "BTC/USDT" })),
+      "POST /trading/orders/cancel-batch": cancelBatchRoute,
+    });
+    const r = await h.call("cancel_orders", { orders: [{ order_id: "ord_1" }, { order_id: "ord_missing" }] });
+    expect(r.isError).toBe(true);
+    expect(batchPosts(h.calls)).toEqual([]);
+  });
+
+  it("refuses bad input before any request", async () => {
+    h = await harness(env(), { "POST /trading/orders/cancel-batch": cancelBatchRoute });
+    const bad: unknown[] = [
+      [],
+      Array.from({ length: 21 }, (_, i) => ({ order_id: `ord_${i}` })),
+      [{ order_id: "ord_1", client_order_id: "cid-1" }],
+      [{}],
+      [{ client_order_id: ".." }],
+      [{ order_id: "ord_1", symbol: "BTC/USDT" }],
+    ];
+    for (const orders of bad) {
+      const r = await h.call("cancel_orders", { orders });
+      expect(r.isError, JSON.stringify(orders)).toBe(true);
+    }
+    expect(h.calls).toEqual([]);
+  });
+
+  it("accepts 20 entries", async () => {
+    h = await harness(env(), { "POST /trading/orders/cancel-batch": cancelBatchRoute });
+    const r = await h.call("cancel_orders", { orders: Array.from({ length: 20 }, (_, i) => ({ order_id: `ord_${i}` })) });
+    expect(structured(r).cancelled).toBe(20);
   });
 });

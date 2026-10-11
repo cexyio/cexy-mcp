@@ -27,7 +27,7 @@ const READ = [
   "list_withdrawals",
   "get_ledger",
 ];
-const TRADE = ["place_order", "cancel_order", "cancel_all_orders"];
+const TRADE = ["place_order", "cancel_order", "cancel_orders", "cancel_all_orders"];
 
 /** Names (and name fragments) that must never be tools of this server. */
 const FORBIDDEN_NAMES = [

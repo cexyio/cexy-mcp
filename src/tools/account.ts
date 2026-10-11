@@ -5,6 +5,7 @@ import { InputError } from "../result.js";
 import {
   READ_ANNOTATIONS,
   assetSchema,
+  clientOrderIdSchema,
   cursorSchema,
   defineTool,
   directionSchema,
@@ -206,7 +207,7 @@ export const accountTools: ToolDef[] = [
     description: "One of your orders, by order_id or by client_order_id (give exactly one). Needs the read scope.",
     input: {
       order_id: orderIdSchema.optional(),
-      client_order_id: z.string().min(1).max(128).optional(),
+      client_order_id: clientOrderIdSchema.optional(),
     },
     annotations: READ_ANNOTATIONS,
     handler: async ({ order_id, client_order_id }, { client }) => {

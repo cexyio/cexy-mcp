@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { CexyClient, PlaceOrderRequest } from "@cexyio/cexy";
+import type { CancelOrderEntry, CexyClient, PlaceOrderRequest } from "@cexyio/cexy";
 import { z } from "zod";
 import type { McpConfig } from "../config.js";
 import { compare, isPositiveDecimal, max, mul, add, min, sub } from "../decimal.js";
@@ -7,6 +7,7 @@ import { GuardrailError, InputError, OrderAttemptError } from "../result.js";
 import { fillView, orderView } from "./account.js";
 import {
   TRADE_ANNOTATIONS,
+  clientOrderIdSchema,
   decimalSchema,
   defineTool,
   orderIdSchema,
@@ -32,6 +33,9 @@ export interface NotionalBound {
   notional: string | null;
   method: string;
 }
+
+/** Entries per cancel_orders call: below the exchange's 50, to keep one agent call small. */
+const MAX_CANCEL_ORDERS = 20;
 
 /** Levels deep enough to price a market order against the book. */
 const BOOK_DEPTH_FOR_BOUND = 50;
@@ -206,14 +210,78 @@ export const tradeTools: ToolDef[] = [
       "Needs the trade scope.",
     input: {
       order_id: orderIdSchema.optional(),
-      client_order_id: z.string().min(1).max(128).optional(),
+      client_order_id: clientOrderIdSchema.optional(),
     },
     annotations: { ...TRADE_ANNOTATIONS, idempotentHint: true, title: "Cancel order" },
     handler: async ({ order_id, client_order_id }, { client }) => {
       if (!!order_id === !!client_order_id) throw new InputError("give exactly one of order_id or client_order_id");
-      const id = order_id ?? (await client.trading.orderByClientId(client_order_id as string)).id;
-      const o = await client.trading.cancelOrder(id);
+      // One request either way: the exchange cancels by client_order_id directly.
+      const o = order_id
+        ? await client.trading.cancelOrder(order_id)
+        : await client.trading.cancelOrderByClientId(client_order_id as string);
       return { summary: `Order ${o.id} is ${o.status} (filled ${o.filled_quantity}).`, data: { order: orderView(o) } };
+    },
+  }),
+
+  defineTool({
+    name: "cancel_orders",
+    tier: "trade",
+    title: "Cancel several orders",
+    description:
+      `Cancels up to ${MAX_CANCEL_ORDERS} of your orders in one call, each named by order_id or client_order_id ` +
+      "(exactly one per entry). Each is cancelled on its own: one that is already closed or unknown does not stop the " +
+      "rest, and each result says what happened (cancelled, failed with the reason, or recovered/unknown after a lost " +
+      "answer). When CEXY_MCP_ALLOWED_MARKETS is set, every entry's market is checked first and the whole call is " +
+      "refused if any entry is outside it or cannot be checked. Needs the trade scope.",
+    input: {
+      orders: z
+        .array(z.object({ order_id: orderIdSchema.optional(), client_order_id: clientOrderIdSchema.optional() }).strict())
+        .min(1)
+        .max(MAX_CANCEL_ORDERS)
+        .describe(`1 to ${MAX_CANCEL_ORDERS} entries, each { order_id } or { client_order_id }`),
+    },
+    annotations: { ...TRADE_ANNOTATIONS, idempotentHint: true, title: "Cancel several orders" },
+    handler: async ({ orders }, { client, config, logger }) => {
+      const entries: CancelOrderEntry[] = orders.map((e, i) => {
+        if (!!e.order_id === !!e.client_order_id) throw new InputError(`orders[${i}]: give exactly one of order_id or client_order_id`);
+        return e.order_id ? { order_id: e.order_id } : { client_order_id: e.client_order_id as string };
+      });
+      if (config.allowedMarkets) {
+        // Check every market before cancelling anything; refuse the whole call on any doubt.
+        for (const [i, e] of entries.entries()) {
+          let symbol: string;
+          try {
+            const o = e.order_id ? await client.trading.order(e.order_id) : await client.trading.orderByClientId(e.client_order_id as string);
+            symbol = o.symbol;
+          } catch (err) {
+            throw new GuardrailError(
+              `orders[${i}]: its market could not be checked against CEXY_MCP_ALLOWED_MARKETS, so nothing was cancelled.`,
+              { index: i, ...e, reason: err instanceof Error ? err.message : String(err) },
+            );
+          }
+          if (!config.allowedMarkets.includes(symbol)) {
+            throw new GuardrailError(
+              `orders[${i}] is in ${symbol}, which is not in CEXY_MCP_ALLOWED_MARKETS (${config.allowedMarkets.join(", ")}); nothing was cancelled.`,
+              { index: i, ...e, symbol, allowed_markets: config.allowedMarkets },
+            );
+          }
+        }
+      }
+      logger.info("cancelling orders", { count: entries.length });
+      const res = await client.trading.cancelOrders(entries);
+      const results = res.results.map((r) => ({
+        index: r.index,
+        outcome: r.outcome,
+        order_id: r.order_id,
+        client_order_id: r.client_order_id,
+        status: r.status,
+        ...(r.error ? { error: { code: r.error.code, message: r.error.message } } : {}),
+      }));
+      const unknown = res.unknown ? `, ${res.unknown} unknown (check them with get_order before acting)` : "";
+      return {
+        summary: `${plural(res.cancelled, "order")} cancelled, ${res.failed} not${unknown}.`,
+        data: { cancelled: res.cancelled, failed: res.failed, unknown: res.unknown, results },
+      };
     },
   }),
 

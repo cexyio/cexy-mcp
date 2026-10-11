@@ -6,6 +6,19 @@ tool surface may still change).
 
 ## [Unreleased]
 
+### Added
+- `cancel_orders` (trade tier): cancels up to 20 orders in one request, each by `order_id` or
+  `client_order_id`, with a result per entry. With `CEXY_MCP_ALLOWED_MARKETS` set, every entry's
+  market is looked up first and the whole call is refused if any is outside the list or cannot be
+  checked.
+
+### Changed
+- `cancel_order` by `client_order_id` is one request (`DELETE /trading/orders/by-client-id/{id}`)
+  instead of a lookup then a cancel by id.
+- `client_order_id` inputs (`cancel_order`, `get_order`) follow the exchange's rule: 1 to 64
+  characters of `A-Z a-z 0-9 _ - . :`, not `.` or `..`.
+- Built on `@cexyio/cexy` 0.1.0-dev.17 (was 0.1.0-dev.14).
+
 ## [0.1.0-dev.11] (2026-10-07)
 
 ### Changed

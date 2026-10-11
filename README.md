@@ -128,7 +128,8 @@ are annotated `destructiveHint: true`.
 | Tool | What it does |
 |---|---|
 | `place_order` | Places a **real** order. Always sends a `client_order_id` (a UUID, generated if not given) and returns the resulting order state and fills. Never re-sends. If the outcome is ambiguous (network error, timeout, 5xx), the error is `retryable: false`, carries the `client_order_id`, and tells the assistant to call `get_order` with it before doing anything else. |
-| `cancel_order` | Cancels one order, by `order_id` or `client_order_id` |
+| `cancel_order` | Cancels one order, by `order_id` or `client_order_id` (one request either way) |
+| `cancel_orders` | Cancels up to 20 orders in one request, each by `order_id` or `client_order_id`. Each entry gets its own result (cancelled, failed with the reason, or recovered/unknown after a lost answer). With `CEXY_MCP_ALLOWED_MARKETS` set, every entry's market is checked first and the whole call is refused if any entry is outside the list or cannot be checked. |
 | `cancel_all_orders` | Cancels your open orders in **one** market. `symbol` is required; there is no account-wide cancel. |
 
 **Never available:** withdrawals, transfers (including sub-account transfers), any other sub-account action
