@@ -6,6 +6,13 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.13] (2026-10-15)
+
+### Changed
+- Built on `@cexyio/cexy` 0.1.0-dev.18 (was 0.1.0-dev.17). No tool changes: the SDK changes in that
+  release (futures history paging, WebSocket error fields, futures operation ids) are in parts of
+  the SDK this server does not use.
+
 ## [0.1.0-dev.12] (2026-10-11)
 
 ### Added
