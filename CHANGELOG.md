@@ -6,8 +6,16 @@ tool surface may still change).
 
 ## [Unreleased]
 
+## [0.1.0-dev.14] (2026-10-17)
+
 ### Changed
-- `cancel_all` tool description: with `until_done=true` the call repeats while more orders remain or
+- Built on `@cexyio/cexy` 0.1.0-dev.19 (was 0.1.0-dev.18): `cancel_all_orders` with `until_done=true`
+  now retries `SERVICE_UNAVAILABLE`, `MARKET_UNAVAILABLE` and `CONCURRENT_MODIFICATION`, and returns
+  `INVALID_STATE` at once. Needs backend 94a2735 or later.
+- `cancel_order` tool description: says that it does not check `CEXY_MCP_ALLOWED_MARKETS` (cancelling
+  one order only reduces exposure), while `cancel_orders` checks every entry. Behaviour unchanged; the
+  README already said so.
+- `cancel_all_orders` tool description: with `until_done=true` the call repeats while more orders remain or
   a failure can clear on its own (market restarting, order busy). The server now cancels a pending
   order at once (backend 94a2735), so a pending order is no longer a reason to repeat.
 
