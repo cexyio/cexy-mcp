@@ -6,6 +6,11 @@ tool surface may still change).
 
 ## [Unreleased]
 
+### Changed
+- `cancel_all` tool description: with `until_done=true` the call repeats while more orders remain or
+  a failure can clear on its own (market restarting, order busy). The server now cancels a pending
+  order at once (backend 94a2735), so a pending order is no longer a reason to repeat.
+
 ## [0.1.0-dev.13] (2026-10-15)
 
 ### Changed
