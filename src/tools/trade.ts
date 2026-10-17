@@ -294,8 +294,9 @@ export const tradeTools: ToolDef[] = [
       "(pending_trigger), whose reservations are released. symbol is required: this server never cancels across " +
       "all markets. One call handles up to 500 orders; already_closed lists orders that closed on their own (not an " +
       "error), and failures says why an order could not be cancelled. With until_done=true it repeats the call " +
-      "(up to 20 rounds or 2 minutes) while more orders remain or some are still being placed, so one call can take " +
-      "up to about 2 minutes: raise your client's tool timeout if it is shorter. The exchange allows 30 cancel-all " +
+      "(up to 20 rounds or 2 minutes) while more orders remain or a failure can clear on its own (the market is " +
+      "restarting, or an order is busy), so one call can take up to about 2 minutes: raise your client's tool " +
+      "timeout if it is shorter. The exchange allows 30 cancel-all " +
       "calls a minute. Needs the trade scope.",
     input: {
       symbol: symbolSchema,
