@@ -207,7 +207,8 @@ export const tradeTools: ToolDef[] = [
     title: "Cancel order",
     description:
       "Cancels one of your open orders, by order_id or client_order_id (exactly one). Returns the order's resulting state. " +
-      "Needs the trade scope.",
+      "It does not check CEXY_MCP_ALLOWED_MARKETS: cancelling one order only reduces exposure (cancel_orders does check " +
+      "it, for every entry). Needs the trade scope.",
     input: {
       order_id: orderIdSchema.optional(),
       client_order_id: clientOrderIdSchema.optional(),

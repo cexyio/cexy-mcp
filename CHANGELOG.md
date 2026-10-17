@@ -7,6 +7,9 @@ tool surface may still change).
 ## [Unreleased]
 
 ### Changed
+- `cancel_order` tool description: says that it does not check `CEXY_MCP_ALLOWED_MARKETS` (cancelling
+  one order only reduces exposure), while `cancel_orders` checks every entry. Behaviour unchanged; the
+  README already said so.
 - `cancel_all` tool description: with `until_done=true` the call repeats while more orders remain or
   a failure can clear on its own (market restarting, order busy). The server now cancels a pending
   order at once (backend 94a2735), so a pending order is no longer a reason to repeat.
